@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UB Client Demo Page</title>
+    <style>
+        body
+        {
+            text-align: center;
+            font-family: Arial, serif;
+            line-height: 1.5rem;
+        }
+
+        .message
+        {
+            max-width: 400px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: start;
+            padding-block: 10px;
+            padding-inline: 15px;
+            border: 1px solid blueviolet;
+            border-radius: 5px;
+            background: whitesmoke;
+        }
+
+        .field
+        {
+
+        }
+
+        .field-content
+        {
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+<script type="module">
+    import {ethers} from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.min.js";
+    import {UncensoredBulletin} from "./uncensored-bulletin.js";
+
+    const uncensoredBulletin = new UncensoredBulletin(ethers);
+
+    /*
+      You may use your real account's private key to import it into the client. 
+      Alternatively, however, you may:
+        uncensoredBulletin.createAccount() - create a new blockchain account/address;
+        uncensoredBulletin.loadAccount() - load a previously saved account.
+
+      Use uncensoredBulletin.saveAccount() - to save a password protected account.
+    */
+    uncensoredBulletin.importAccount("<Your account private key here>");
+
+    uncensoredBulletin.totalPosts()
+        .then((amountOfPosts) =>
+        {
+            let postIdx = Number(amountOfPosts - 1n);
+
+            console.log(`Total amount of posts including those removed by authors: ${amountOfPosts}`);
+            uncensoredBulletin.getPostAtIndex(postIdx)
+                .then((postEntry) =>
+                {
+                    if (null !== postEntry && postEntry.postType !== 0)
+                    {
+                        document.getElementById('post-index').innerText = postIdx + `  (${postEntry.postType})`;
+                        document.getElementById('post-type-string').innerText = uncensoredBulletin.postType2String(postEntry.postType);
+                        document.getElementById('post-publication-date').innerText = new Date(postEntry.postTime * 1000).toLocaleString();
+                        document.getElementById('post-title').innerText = postEntry.postTitle;
+                        document.getElementById('post-summary').innerText = postEntry.postSummary;
+                        document.getElementById('post-content').innerText = postEntry.postContent;
+                    }
+                    else if (null !== postEntry)
+                    {
+                        document.getElementById('post-index').innerText = postIdx + `  (0)`;
+                        document.getElementById('post-type-string').innerText = uncensoredBulletin.postType2String(0);
+                    }
+                    else
+                    {
+                        document.getElementById('post-index').innerText = postIdx + `  (0)`;
+                        document.getElementById('post-type-string').innerText = uncensoredBulletin.postType2String(3);
+                    }
+
+                    uncensoredBulletin.subscriptionPrice()
+                        .then((price) =>
+                        {
+                            console.log(price);
+                            document.getElementById('subscription-price').innerText = `${uncensoredBulletin.ethers.formatEther(price)} MATIC`;
+                        })
+                        .catch((error) =>
+                        {
+                            console.log(`Could not fetch subscription price due to an error (perhaps UB is not yet ready): ${error.message}`);
+                        });
+
+
+                    uncensoredBulletin.getUIPackageURL()
+                        .then((url) =>
+                        {
+                            const u = document.getElementById('package-url');
+                            u.setAttribute('href', url);
+                        });
+                })
+                .catch((error) =>
+                {
+                    console.log(error.message);
+                });
+        });
+
+
+</script>
+
+<div class="message">
+    <div class="field">Subscription price/10days: <span class="field-content" id="subscription-price"></span></div>
+    <div>
+        <p>Latest build of UncensoredBulletin Viewer may be downloaded from <a href="" id="package-url" target="_blank">here</a>.</p>
+    </div>
+    <div style="border-block-start: 1px solid blueviolet; margin-block:10px"></div>
+    <div class="field">Post index: <span class="field-content" id="post-index"></span></div>
+    <div class="field">Post type string: <span class="field-content" id="post-type-string"></span></div>
+    <div class="field">Publication date: <span class="field-content" id="post-publication-date"></span></div>
+    <div class="field">Post title: <span class="field-content" id="post-title"></span></div>
+    <div class="field">Post summary: <span class="field-content" id="post-summary"></span></div>
+    <div class="field">Post content: <span class="field-content" id="post-content"></span></div>
+</div>
+
+</body>
+</html>
